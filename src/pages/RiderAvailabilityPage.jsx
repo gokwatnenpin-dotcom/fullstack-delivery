@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { getRiderProfile, updateRiderAvailability, getAvailableRiders, getOrders } from '../lib/api';
+import { useNavigate, Link, Navigate } from 'react-router-dom'; // FIXED: Added Navigate import
+import { 
+  getRiderProfile, 
+  updateRiderAvailability, 
+  getAvailableRiders, 
+  getOrders, 
+  updateOrderStatus // FIXED: Added missing API hook import
+} from '../lib/api';
 
 const RiderAvailabilityPage = () => {
   const [rider, setRider] = useState(null);
@@ -8,33 +14,35 @@ const RiderAvailabilityPage = () => {
   const [availableOrders, setAvailableOrders] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const loadRiderData = async () => {
       try {
         setLoading(true);
-        // Get current rider profile
         const riderData = await getRiderProfile();
         setRider(riderData);
 
-        // Get available riders (for admin view or reference)
         const ridersData = await getAvailableRiders();
         setAvailableRiders(ridersData);
 
-        // Get available orders (orders with status 'confirmed' and no rider assigned)
         const ordersData = await getOrders({});
         const availableOrdersData = ordersData.filter(order =>
           order.status === 'confirmed' && !order.rider_id
         );
         setAvailableOrders(availableOrdersData);
       } catch (err) {
-        setError(err.message);
+        setError(err.message || 'Failed to load rider telemetry data.');
       } finally {
         setLoading(false);
       }
     };
 
-    loadRiderData();
+    const token = localStorage.getItem('delivery-token');
+    const user = JSON.parse(localStorage.getItem('delivery-user') || '{}');
+    if (token && user?.role === 'rider') {
+      loadRiderData();
+    }
   }, []);
 
   const token = localStorage.getItem('delivery-token');
@@ -45,10 +53,20 @@ const RiderAvailabilityPage = () => {
     return <Navigate to="/dashboard" replace />;
   }
 
+  // FIXED: Standard loading skeleton guard to prevent UI null pointer crashes
+  if (loading) {
+    return (
+      <main className="bg-background-dark py-16">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full border-4 border-primary-600 border-t-transparent w-12 h-12"></div>
+        </div>
+      </main>
+    );
+  }
+
   const handleAvailabilityChange = async (status) => {
     try {
       await updateRiderAvailability(status);
-      // Refresh rider data
       const updatedRider = await getRiderProfile();
       setRider(updatedRider);
     } catch (err) {
@@ -56,64 +74,179 @@ const RiderAvailabilityPage = () => {
     }
   };
 
-  return <main className="bg-background-dark py-16"><div className="mx-auto max-w-5xl px-4 sm:px-6"><div className="bg-white rounded-2xl p-6 shadow-sm"><div className="mb-6"><p className="eyebrow">Delivery<span className="text-primary-600">+</span></p><h1 className="text-2xl font-bold text-primary-900">Rider Availability</h1></div>{error && <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700">{error}</p>}<div className="space-y-6"><div className="border-b pb-4"><h2 className="text-xl font-semibold text-primary-900">Your Availability</h2><div className="flex items-center space-x-4"><div className="w-12 h-12 rounded-lg flex items-center justify-center">{getAvailabilityBadge(rider?.availability_status)}</div><div><p className="text-lg font-medium">{getAvailabilityLabel(rider?.availability_status)}</p><p className="text-sm text-text-secondary">Last updated: {new Date(rider?.updatedAt).toLocaleTimeString()}</p></div></div><div className="mt-4 space-x-3"><button onClick={() => handleAvailabilityChange('available')} className={`px-3 py-1 rounded text-sm font-medium ${rider?.availability_status === 'available' ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'`}>Available</button><button onClick={() => handleAvailabilityChange('busy')} className={`px-3 py-1 rounded text-sm font-medium ${rider?.availability_status === 'busy' ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'`}>Busy</button><button onClick={() => handleAvailabilityChange('offline')} className={`px-3 py-1 rounded text-sm font-medium ${rider?.availability_status === 'offline' ? 'bg-primary-600 text-white' : 'bg-primary-50 text-primary-600 hover:bg-primary-100'`}>Offline</button></div></div>{rider?.availability_status === 'available' && <div className="mt-4"><p className="text-sm font-medium text-text-secondary">You're currently available to accept delivery requests.</p></div>}</div>{availableRiders.length > 0 && <div className="border-t pt-6"><h2 className="text-xl font-semibold text-primary-900 mb-4">Currently Available Riders</h2><div className="space-y-3">{availableRiders.map((rider) => <div key={rider.id} className="rounded-lg border border-primary-100 p-4"><div className="flex justify-between items-start"><div><p className="font-medium">{rider.User.first_name} {rider.User.last_name}</p><p className="text-sm text-text-secondary">Rider #{rider.id}</p></div><div className="text-right">{getAvailabilityBadge(rider.availability_status, true)}</div></div><div className="mt-2"><p className="text-sm text-text-secondary">Vehicle: {(rider.vehicle_info && rider.vehicle_info.type) || 'Not specified'}</p><p className="text-sm text-text-secondary">Location: {(rider.current_location && `Lat: ${rider.current_location.latitude?.toFixed(4)}, Lng: ${rider.current_location.longitude?.toFixed(4)}`) || 'Not available'}</p></div></div>)}</div></div>}{availableOrders.length > 0 && <div className="border-t pt-6"><h2 className="text-xl font-semibold text-primary-900 mb-4">Available Delivery Requests</h2>{availableOrders.map((order) => <div key={order.id} className="rounded-lg border border-primary-100 p-4"><div className="flex justify-between items-start"><div><p className="font-medium">Order #{order.id}</p><p className="text-sm text-text-secondary">${new Date(order.createdAt).toLocaleString()}</p></div><div className="text-right"><button onClick={() => acceptOrder(order.id)} className="bg-primary-600 text-white px-3 py-1 rounded text-sm hover:bg-primary-700">Accept</button></div></div><div className="mt-2"><p className="text-sm text-text-secondary">From: {order.pickup_location?.address || 'Not specified'}</p><p className="text-sm text-text-secondary">To: {order.delivery_location?.address || 'Not specified'}</p></div>{order.items && <p className="text-sm text-text-secondary mb-1">Items: {order.items}</p>}{order.special_instructions && <p className="text-sm text-text-secondary">Special Instructions: {order.special_instructions}</p>}</div></div>)}</div>{availableRiders.length === 0 && availableOrders.length === 0 && <div className="text-center py-8"><p className="text-sm text-text-secondary">No data available at the moment.</p></div>}</div></div></main>;
-};
+  const acceptOrder = async (orderId) => {
+    try {
+      await updateOrderStatus(orderId, {
+        status: 'assigned',
+        rider_id: user.id
+      });
+      
+      const ordersData = await getOrders({});
+      const availableOrdersData = ordersData.filter(order =>
+        order.status === 'confirmed' && !order.rider_id
+      );
+      setAvailableOrders(availableOrdersData);
 
-const acceptOrder = async (orderId) => {
-  try {
-    // Update the order to assign it to the current rider and set status to assigned
-    await updateOrderStatus(orderId, {
-      status: 'assigned',
-      rider_id: JSON.parse(localStorage.getItem('delivery-user') || '{}').id
-    });
-    // Refresh available orders
-    const ordersData = await getOrders({});
-    const availableOrdersData = ordersData.filter(order =>
-      order.status === 'confirmed' && !order.rider_id
+      alert('Order accepted successfully! Redirecting to your dashboard workspace.');
+      navigate('/dashboard'); // FIXED: Swapped window.location.href for SPA navigate transition
+    } catch (err) {
+      setError('Failed to accept order: ' + err.message);
+    }
+  };
+
+  const getAvailabilityBadge = (status, isSmall = false) => {
+    let bgColor = 'bg-primary-50';
+    let textColor = 'text-primary-600';
+
+    switch (status) {
+      case 'available':
+        bgColor = 'bg-green-100';
+        textColor = 'text-green-800';
+        break;
+      case 'busy':
+        bgColor = 'bg-yellow-100';
+        textColor = 'text-yellow-800';
+        break;
+      case 'offline':
+        bgColor = 'bg-gray-100';
+        textColor = 'text-gray-800';
+        break;
+    }
+
+    const sizeClass = isSmall ? 'text-xs' : 'text-sm';
+    const paddingClass = isSmall ? 'px-2 py-1' : 'px-3 py-2';
+
+    return (
+      <span className={`${paddingClass} rounded-md font-semibold ${bgColor} ${textColor} ${sizeClass}`}>
+        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
+      </span>
     );
-    setAvailableOrders(availableOrdersData);
+  };
 
-    // Show success message
-    alert('Order accepted successfully! You can view it in your deliveries.');
-    window.location.href = '/dashboard';
-  } catch (err) {
-    setError('Failed to accept order: ' + err.message);
-  }
-};
+  const getAvailabilityLabel = (status) => {
+    switch (status) {
+      case 'available': return 'Available for deliveries';
+      case 'busy': return 'Currently busy';
+      case 'offline': return 'Offline / Not available';
+      default: return 'No Status Determined';
+    }
+  };
 
-// Helper functions for availability status
-const getAvailabilityBadge = (status, isSmall = false) => {
-  let bgColor = 'bg-primary-50';
-  let textColor = 'text-primary-600';
+  return (
+    <main className="bg-background-dark py-16">
+      <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="bg-white rounded-2xl p-6 shadow-sm sm:p-8">
+          
+          <div className="mb-6">
+            <p className="eyebrow">Delivery<span className="text-primary-600">+</span></p>
+            <h1 className="text-2xl font-bold text-primary-900 mt-1">Rider Availability</h1>
+          </div>
 
-  switch (status) {
-    case 'available':
-      bgColor = 'bg-green-100';
-      textColor = 'text-green-800';
-      break;
-    case 'busy':
-      bgColor = 'bg-yellow-100';
-      textColor = 'text-yellow-800';
-      break;
-    case 'offline':
-      bgColor = 'bg-gray-100';
-      textColor = 'text-gray-800';
-      break;
-  }
+          {error && (
+            <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700 mb-6" role="alert">
+              {error}
+            </p>
+          )}
 
-  const sizeClass = isSmall ? 'text-xs' : 'text-sm';
-  const paddingClass = isSmall ? 'px-2 py-1' : 'px-3 py-2';
+          <div className="space-y-6">
+            <div className="border-b border-gray-100 pb-6">
+              <h2 className="text-xl font-semibold text-primary-900 mb-4">Your Availability Status</h2>
+              
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center justify-center">
+                  {getAvailabilityBadge(rider?.availability_status)}
+                </div>
+                <div>
+                  <p className="text-lg font-medium text-gray-900">
+                    {getAvailabilityLabel(rider?.availability_status)}
+                  </p>
+                  <p className="text-sm text-text-secondary mt-0.5">
+                    Last updated: {rider?.updatedAt ? new Date(rider.updatedAt).toLocaleTimeString() : 'Never'}
+                  </p>
+                </div>
+              </div>
 
-  return `<span className="${paddingClass} rounded ${bgColor} ${textColor} ${sizeClass}">${status.charAt(0).toUpperCase() + status.slice(1)}</span>`;
-};
+              {/* FIXED: Repaired broken string syntax interpolation brackets */}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button 
+                  type="button"
+                  onClick={() => handleAvailabilityChange('available')} 
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    rider?.availability_status === 'available' 
+                      ? 'bg-primary-600 text-white shadow-sm' 
+                      : 'bg-primary-50 text-primary-700 hover:bg-primary-100'
+                  }`}
+                >
+                  Available
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => handleAvailabilityChange('busy')} 
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    rider?.availability_status === 'busy' 
+                      ? 'bg-amber-600 text-white shadow-sm' 
+                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
+                  }`}
+                >
+                  Busy
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => handleAvailabilityChange('offline')} 
+                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
+                    rider?.availability_status === 'offline' 
+                      ? 'bg-gray-600 text-white shadow-sm' 
+                      : 'bg-gray-50 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Offline
+                </button>
+              </div>
 
-const getAvailabilityLabel = (status) => {
-  switch (status) {
-    case 'available': return 'Available for deliveries';
-    case 'busy': return 'Currently busy';
-    case 'offline': return 'Offline / Not available';
-    default: return status;
-  }
+              {rider?.availability_status === 'available' && (
+                <div className="mt-4 rounded-lg bg-green-50/50 p-3 border border-green-100/50">
+                  <p className="text-sm font-medium text-green-800">
+                    You're currently live! Open orders will register dynamically below.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* ORDER POOL SECTION (Rendered out for implementation visibility) */}
+            <div className="pt-2">
+              <h2 className="text-xl font-semibold text-primary-900 mb-4">Open Confirmed Orders Pool</h2>
+              {availableOrders.length > 0 ? (
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {availableOrders.map((order) => (
+                    <div key={order.id} className="border border-gray-100 rounded-xl p-4 shadow-sm bg-white flex flex-col justify-between">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-bold text-gray-900 text-sm">Order #{order.id}</span>
+                          <span className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-xs text-gray-600 mt-1"><b className="text-gray-700">From:</b> {order.pickup_location?.address}</p>
+                        <p className="text-xs text-gray-600"><b className="text-gray-700">To:</b> {order.delivery_location?.address}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => acceptOrder(order.id)}
+                        className="mt-4 w-full bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-xs font-bold py-2 transition"
+                      >
+                        Accept Job assignment
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-text-secondary italic">No unassigned confirmed orders available right now.</p>
+              )}
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </main>
+  );
 };
 
 export default RiderAvailabilityPage;

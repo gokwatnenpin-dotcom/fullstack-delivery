@@ -1,5 +1,81 @@
 import { Link } from 'react-router-dom';
 
-const Hero = () => <section className="relative overflow-hidden bg-[#f2f8f6]"><div className="soft-grid absolute inset-0 opacity-60" aria-hidden="true" /><div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-24"><div className="max-w-2xl"><p className="eyebrow mb-5">Care that revolves around you</p><h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-primary-900 sm:text-5xl lg:text-[3.7rem]">A calmer, clearer way to care for your health.</h1><p className="mt-6 max-w-xl text-base leading-8 text-text-secondary sm:text-lg">From a first question to ongoing support, connect with trusted clinicians and feel confident about every next step.</p><div className="mt-8 flex flex-wrap gap-3"><Link to="/contact" className="rounded-lg bg-primary-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-800">Book an appointment</Link><Link to="/services" className="rounded-lg border border-primary-200 bg-white px-5 py-3 text-sm font-semibold text-primary-800 transition hover:border-primary-300 hover:bg-primary-50">Explore services</Link></div><div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-text-secondary"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-secondary-500" />Same-week visits</span><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full bg-secondary-500" />Virtual care available</span></div></div><div className="relative mx-auto w-full max-w-lg"><div className="absolute -right-8 -top-8 h-44 w-44 rounded-full bg-primary-200/45 blur-2xl" aria-hidden="true" /><img src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=900&q=85&fit=crop" alt="Doctor consulting with a patient" className="relative h-[410px] w-full rounded-[1.5rem] object-cover shadow-[0_24px_60px_-28px_rgba(18,60,57,.45)] sm:h-[490px]" /><div className="absolute -bottom-5 left-5 right-5 rounded-xl border border-white/70 bg-white/95 p-4 shadow-lg backdrop-blur sm:left-7 sm:right-auto sm:w-80"><div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700"><svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="m5 12 4 4L19 6" /></svg></span><div><p className="text-sm font-semibold text-primary-900">Here when you need us</p><p className="mt-0.5 text-xs text-text-secondary">200+ experienced care providers</p></div></div></div></div></div></section>;
+const Hero = () => {
+  return (
+    <section className="relative overflow-hidden bg-[#f2f8f6]">
+      {/* Background Graphic decorative anchor */}
+      <div className="soft-grid absolute inset-0 opacity-60" aria-hidden="true" />
+      
+      <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.05fr_.95fr] lg:px-8 lg:py-24">
+        
+        {/* Left Column: Text & Call to Actions */}
+        <div className="max-w-2xl">
+          <p className="eyebrow mb-5">Care that revolves around you</p>
+          
+          <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-primary-900 sm:text-5xl lg:text-[3.7rem]">
+            A calmer, clearer way to care for your health.
+          </h1>
+          
+          <p className="mt-6 max-w-xl text-base leading-8 text-text-secondary sm:text-lg">
+            From a first question to ongoing support, connect with trusted clinicians and feel confident about every next step.
+          </p>
+          
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link 
+              to="/contact" 
+              className="rounded-lg bg-primary-700 px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-800"
+            >
+              Book an appointment
+            </Link>
+            <Link 
+              to="/services" 
+              className="rounded-lg border border-primary-200 bg-white px-5 py-3 text-sm font-semibold text-primary-800 transition hover:border-primary-300 hover:bg-primary-50"
+            >
+              Explore services
+            </Link>
+          </div>
+          
+          <div className="mt-10 flex flex-wrap gap-x-7 gap-y-3 text-sm text-text-secondary">
+            <span className="flex items-center gap-2">
+              <i className="h-2 w-2 rounded-full bg-secondary-500" />
+              Same-week visits
+            </span>
+            <span className="flex items-center gap-2">
+              <i className="h-2 w-2 rounded-full bg-secondary-500" />
+              Virtual care available
+            </span>
+          </div>
+        </div>
+
+        {/* Right Column: Hero Image & Overlay Card */}
+        <div className="relative mx-auto w-full max-w-lg">
+          <div className="absolute -right-8 -top-8 h-44 w-44 rounded-full bg-primary-200/45 blur-2xl" aria-hidden="true" />
+          
+          <img 
+            src="https://images.unsplash.com/photo-1559839734-2b71ea197ec2?w=900&q=85&fit=crop" 
+            alt="Doctor consulting with a patient" 
+            className="relative h-[410px] w-full rounded-[1.5rem] object-cover shadow-[0_24px_60px_-28px_rgba(18,60,57,.45)] sm:h-[490px]" 
+          />
+          
+          {/* Floating Feature Card */}
+          <div className="absolute -bottom-5 left-5 right-5 rounded-xl border border-white/70 bg-white/95 p-4 shadow-lg backdrop-blur sm:left-7 sm:right-auto sm:w-80">
+            <div className="flex items-center gap-3">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary-100 text-primary-700">
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="m5 12 4 4L19 6" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-sm font-semibold text-primary-900">Here when you need us</p>
+                <p className="mt-0.5 text-xs text-text-secondary">200+ experienced care providers</p>
+              </div>
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </section>
+  );
+};
 
 export default Hero;
