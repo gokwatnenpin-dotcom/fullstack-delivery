@@ -1,0 +1,9 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+:root { font-family: Inter, ui-sans-serif, system-ui, sans-serif; color: #183b3a; background: #f7faf9; font-synthesis: none; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: #f7faf9; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+button, input, select, textarea { font: inherit; }
+::selection { background: #b9e3dc; color: #123c39; }
