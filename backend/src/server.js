@@ -15,19 +15,35 @@ if (!process.env.JWT_SECRET) {
   process.env.JWT_SECRET = 'local-development-only-change-me';
   console.warn('JWT_SECRET is not set; using a development-only secret. Configure backend/.env before deployment.');
 }
+
 const app = express();
+
+// Security and utility middleware
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_ORIGIN?.split(',') ?? '*', credentials: true }));
 app.use(express.json({ limit: '1mb' }));
-app.use(rateLimit({ windowMs: 15 * 60 * 1000, limit: 100 }));
+
+// Global Rate Limiter
+app.use(rateLimit({ 
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 100, // Limit each IP to 100 requests per `window`
+  standardHeaders: 'draft-7', // return rate limit info in the `RateLimit-*` headers
+  legacyHeaders: false, // Disable the `X-RateLimit-*` headers
+}));
+
+// Core/System Routes (Changed from app.use to app.get)
 app.get('/', (_req, res) => res.json({ name: 'Delivery Platform API', version: '1.0.0' }));
-app.use('/api/health', (_req, res) => res.json({ status: 'OK', timestamp: new Date() }));
+app.get('/api/health', (_req, res) => res.json({ status: 'OK', timestamp: new Date() }));
+
+// API Features Routing
 app.use('/api/auth', authRoutes);
 app.use('/api/customers', customerRoutes);
 app.use('/api/riders', riderRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/admin', adminRoutes);
+
+// Fallback error handlers
 app.use(notFound);
 app.use(errorHandler);
 
@@ -38,7 +54,7 @@ const startServer = async () => {
     await sequelize.authenticate();
     console.log('Database connection established successfully.');
 
-    // Sync all models
+    // Sync all models (Consider altering/migrating instead of full sync in production)
     await sequelize.sync();
     console.log('All models were synchronized successfully.');
 
