@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { sequelize } from '../models/index.js';
+import models from './models/index.js'; //  Correct
 import authRoutes from './routes/auth.js';
 import customerRoutes from './routes/customers.js';
 import riderRoutes from './routes/riders.js';
