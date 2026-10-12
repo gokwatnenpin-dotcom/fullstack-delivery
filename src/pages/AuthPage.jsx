@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { login, register } from '../lib/api';
-
-const inputClass = 'block w-full rounded-lg border-0 bg-white px-4 py-3 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600';
+import { TruckIcon } from '../components/Icons';
 
 const AuthPage = () => {
   const [params, setParams] = useSearchParams();
@@ -12,7 +11,6 @@ const AuthPage = () => {
   const [busy, setBusy] = useState(false);
   const navigate = useNavigate();
 
-  // Keep the mode state in sync if the URL query parameter changes
   useEffect(() => {
     const urlMode = params.get('mode');
     if (urlMode === 'register' || urlMode === 'login') {
@@ -20,7 +18,6 @@ const AuthPage = () => {
     }
   }, [params]);
 
-  // Handler to switch modes and update the URL query parameter
   const handleModeChange = (newMode) => {
     setMode(newMode);
     setError('');
@@ -31,7 +28,7 @@ const AuthPage = () => {
     event.preventDefault();
     setError('');
     setBusy(true);
-    
+
     try {
       let result;
       if (mode === 'login') {
@@ -57,79 +54,120 @@ const AuthPage = () => {
   };
 
   return (
-    <main className="bg-background-dark py-16 sm:py-24">
-      <div className="mx-auto max-w-md px-4">
-        <div className="rounded-2xl border border-primary-100 bg-white p-6 shadow-sm sm:p-8">
-          
-          {/* Header section */}
-          <div className="text-center">
-            <p className="eyebrow">
-              Delivery<span className="text-primary-600">+</span>
-            </p>
-            <h1 className="mt-3 text-3xl font-bold text-primary-900">
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
+    <main className="min-h-[calc(100vh-64px)] bg-[#f4f4f5] py-16 px-4 flex items-center justify-center">
+      <div className="reveal w-full max-w-md">
+        
+        {/* Card */}
+        <div className="rounded-2xl border border-zinc-200 bg-white p-8 sm:p-10 shadow-sm overflow-hidden">
+          <div className="rounded-xl bg-[#0a0a0b] text-white px-5 py-4 mb-8 flex items-center gap-3">
+            <div className="w-10 h-10 rounded-[10px] bg-red-600 text-white flex items-center justify-center shrink-0">
+              <TruckIcon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="text-sm font-bold leading-tight">Delivery+</div>
+              <div className="text-[11px] text-neutral-400">Secure sign-in · live tracking</div>
+            </div>
+          </div>
+          {/* Header */}
+          <div className="text-center mb-8">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
+              {mode === 'login' ? 'Sign in to account' : 'Create an account'}
             </h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              {mode === 'login' 
-                ? 'Sign in to manage your deliveries.' 
-                : 'Join us to manage your delivery services.'}
+            <p className="mt-1.5 text-xs sm:text-sm text-slate-500">
+              {mode === 'login'
+                ? 'Enter your email and password to access your deliveries'
+                : 'Register as a customer to dispatch shipments in seconds'}
             </p>
           </div>
 
-          {/* Form Section */}
-          <form onSubmit={submit} className="mt-8 space-y-5">
+          {/* Mode Switcher */}
+          <div className="flex rounded-lg bg-slate-100 p-1 mb-6 border border-slate-200">
+            <button
+              type="button"
+              onClick={() => handleModeChange('login')}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                mode === 'login'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Sign In
+            </button>
+            <button
+              type="button"
+              onClick={() => handleModeChange('register')}
+              className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition ${
+                mode === 'register'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Sign Up
+            </button>
+          </div>
+
+          {error && (
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-xs text-red-600">
+              {error}
+            </div>
+          )}
+
+          {/* Form */}
+          <form onSubmit={submit} className="space-y-4">
             {mode === 'register' && (
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="firstName">
-                    First name
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="firstName">
+                    First Name
                   </label>
                   <input
-                    className={inputClass}
                     id="firstName"
                     type="text"
                     required
                     value={form.firstName}
                     onChange={(e) => setForm({ ...form, firstName: e.target.value })}
+                    className="w-full bg-[#f8fafc] border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:bg-white transition"
+                    placeholder="Alex"
                   />
                 </div>
                 <div>
-                  <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="lastName">
-                    Last name
+                  <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="lastName">
+                    Last Name
                   </label>
                   <input
-                    className={inputClass}
                     id="lastName"
                     type="text"
                     required
                     value={form.lastName}
                     onChange={(e) => setForm({ ...form, lastName: e.target.value })}
+                    className="w-full bg-[#f8fafc] border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:bg-white transition"
+                    placeholder="Morgan"
                   />
                 </div>
               </div>
             )}
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="email">
-                Email address
+              <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="email">
+                Email Address
               </label>
               <input
-                className={inputClass}
                 id="email"
                 type="email"
                 autoComplete="email"
                 required
                 value={form.email}
                 onChange={(e) => setForm({ ...form, email: e.target.value })}
+                className="w-full bg-[#f8fafc] border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:bg-white transition"
+                placeholder="alex@example.com"
               />
             </div>
 
             <div>
-              <label className="mb-2 block text-sm font-medium text-gray-700" htmlFor="password">
+              <label className="block text-xs font-medium text-slate-700 mb-1" htmlFor="password">
                 Password
               </label>
               <input
-                className={inputClass}
                 id="password"
                 type="password"
                 minLength="8"
@@ -137,41 +175,25 @@ const AuthPage = () => {
                 required
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
+                className="w-full bg-[#f8fafc] border border-slate-300 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:border-red-600 focus:bg-white transition"
+                placeholder="••••••••"
               />
             </div>
-
-            {error && (
-              <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">
-                {error}
-              </p>
-            )}
 
             <button
               type="submit"
               disabled={busy}
-              className="w-full rounded-lg bg-primary-700 px-4 py-3 font-semibold text-white hover:bg-primary-800 disabled:opacity-60"
+              className="mt-6 w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium text-sm shadow-sm transition disabled:opacity-50 cursor-pointer"
             >
-              {busy ? 'Please wait…' : mode === 'login' ? 'Sign in' : 'Create account'}
+              {busy ? 'Please wait...' : mode === 'login' ? 'Sign In' : 'Create Account'}
             </button>
           </form>
 
-          {/* Bottom Switch Links */}
-          <p className="mt-6 text-center text-sm text-text-secondary">
-            {mode === 'login' ? 'New to Delivery+?' : 'Already have an account? '}{' '}
-            <button
-              type="button"
-              className="font-semibold text-primary-700 hover:underline"
-              onClick={() => handleModeChange(mode === 'login' ? 'register' : 'login')}
-            >
-              {mode === 'login' ? 'Create an account' : 'Sign in'}
-            </button>
-          </p>
-          
-          <p className="mt-4 text-center text-xs text-text-secondary">
-            <Link to="/" className="hover:text-primary-700 underline">
-              Return to home
+          <div className="mt-8 text-center pt-4 border-t border-slate-200">
+            <Link to="/" className="text-xs text-slate-500 hover:text-red-600 transition">
+              ← Return to homepage
             </Link>
-          </p>
+          </div>
 
         </div>
       </div>

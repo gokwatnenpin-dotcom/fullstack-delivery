@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Rider, User } from '../models/index.js';
+import { Rider, User } from '../../models/index.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();

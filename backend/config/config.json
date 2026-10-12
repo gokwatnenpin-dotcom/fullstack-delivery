@@ -16,10 +16,7 @@
     "logging": false
   },
   "production": {
-    "username": "",
-    "password": "",
-    "database": "delivery_api",
-    "host": "",
+    "use_env_variable": "DATABASE_URL",
     "dialect": "postgres",
     "logging": false,
     "dialectOptions": {

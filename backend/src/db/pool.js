@@ -13,7 +13,7 @@ export const pool = new Pool({
   connectionString: databaseUrl,
   max: 10,
   idleTimeoutMillis: 30_000,
-  ssl: process.env.NODE_ENV === 'production' || process.env.DATABASE_URL?.includes('render.com') || process.env.DB_SSL === 'true'
+  ssl: (!databaseUrl.includes('localhost') && !databaseUrl.includes('127.0.0.1')) && (process.env.NODE_ENV === 'production' || process.env.DATABASE_URL?.includes('render.com') || process.env.DB_SSL === 'true')
     ? { rejectUnauthorized: false } : false,
 });
 

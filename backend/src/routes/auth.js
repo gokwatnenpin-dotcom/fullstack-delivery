@@ -2,7 +2,7 @@ import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { z } from 'zod';
-import { User } from '../models/index.js';
+import { User, Customer } from '../../models/index.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
@@ -24,7 +24,7 @@ router.post('/register', async (req, res, next) => {
     });
 
     // Create customer profile for new customers
-    await require('../models/index.js').Customer.create({
+    await Customer.create({
       user_id: user.id
     });
 
@@ -62,7 +62,7 @@ router.post('/login', async (req, res, next) => {
 
 router.get('/me', authenticate, async (req, res, next) => {
   try {
-    const user = await User.findByPk(req.user.sub, {
+    const user = await User.findByPk(req.user.id, {
       attributes: ['id', 'email', 'first_name', 'last_name', 'role']
     });
 

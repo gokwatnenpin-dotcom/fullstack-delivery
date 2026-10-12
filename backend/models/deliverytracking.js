@@ -1,8 +1,6 @@
-'use strict';
-const {
-  Model
-} = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
+import { Model } from 'sequelize';
+
+export default (sequelize, DataTypes) => {
   class DeliveryTracking extends Model {
     /**
      * Helper method for defining associations.
@@ -10,7 +8,6 @@ module.exports = (sequelize, DataTypes) => {
      * The `models/index` file will call this method automatically.
      */
     static associate(models) {
-      // define association here
       DeliveryTracking.belongsTo(models.Order, {
         foreignKey: 'order_id',
         onDelete: 'CASCADE'
@@ -26,22 +23,15 @@ module.exports = (sequelize, DataTypes) => {
         key: 'id'
       }
     },
-    latitude: {
-      type: DataTypes.DECIMAL(10, 8),
-      allowNull: false
+    location: DataTypes.JSON,
+    status: {
+      type: DataTypes.ENUM('pending', 'confirmed', 'assigned', 'picked_up', 'in_transit', 'delivered', 'cancelled')
     },
-    longitude: {
-      type: DataTypes.DECIMAL(11, 8),
-      allowNull: false
-    },
-    accuracy: DataTypes.INTEGER,
-    recorded_at: {
-      type: DataTypes.DATE,
-      allowNull: false
-    }
+    notes: DataTypes.TEXT
   }, {
     sequelize,
     modelName: 'DeliveryTracking',
+    tableName: 'DeliveryTrackings',
     timestamps: true,
     createdAt: 'created_at',
     updatedAt: 'updated_at'

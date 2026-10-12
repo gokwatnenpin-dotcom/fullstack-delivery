@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink, useNavigate, Link } from 'react-router-dom';
+import { TruckIcon } from './Icons';
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
   const [user, setUser] = useState(() => JSON.parse(localStorage.getItem('delivery-user') || 'null'));
   const navigate = useNavigate();
 
@@ -10,6 +12,13 @@ const Navbar = () => {
     const update = () => setUser(JSON.parse(localStorage.getItem('delivery-user') || 'null'));
     window.addEventListener('delivery-auth-change', update);
     return () => window.removeEventListener('delivery-auth-change', update);
+  }, []);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 8);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
   const logout = () => {
@@ -20,130 +29,144 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const navClass = ({ isActive }) => 
-    `text-sm font-medium transition ${isActive ? 'text-primary-700' : 'text-text-secondary hover:text-primary-800'}`;
+  const links = getNavLinks(user);
 
   return (
-    <header className="sticky top-0 z-50 border-b border-primary-100/70 bg-white/90 backdrop-blur-md">
-      <nav className="mx-auto flex h-[76px] max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        
-        {/* Logo / Brand */}
-        <NavLink to="/" className="flex items-center gap-3" aria-label="Delivery Platform home">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary-700 text-white shadow-sm">
-            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3">
-              <path d="M12 5v14M5 12h14" />
-            </svg>
-          </span>
-          <span>
-            <span className="block text-lg font-bold leading-none tracking-tight text-primary-900">
-              Delivery<span className="text-primary-600">+</span>
-            </span>
-            <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[.16em] text-text-secondary">
-              Deliveries made simple
-            </span>
-          </span>
-        </NavLink>
+    <header
+      className={`sticky top-0 z-50 bg-[#0a0a0b] text-white transition-shadow duration-300 ${
+        scrolled ? 'shadow-[0_8px_30px_-12px_rgba(0,0,0,0.8)]' : 'shadow-none'
+      } border-b border-white/10`}
+    >
+      <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
 
-        {/* Desktop Navigation Links */}
-        <div className="hidden items-center gap-7 md:flex">
-          {getNavLinks(user).map(([to, label]) => (
-            <NavLink key={to} to={to} end={to === '/'} className={navClass}>
+        {/* Logo */}
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <div className="w-9 h-9 rounded-[10px] bg-red-600 flex items-center justify-center text-white shadow-sm transition-transform duration-300 group-hover:-rotate-6 group-hover:scale-105">
+            <TruckIcon className="w-5 h-5" />
+          </div>
+          <div>
+            <span className="block text-lg font-bold tracking-tight text-white leading-tight">
+              Delivery<span className="text-red-500">+</span>
+            </span>
+            <span className="block text-[10px] font-semibold text-neutral-400 uppercase tracking-[0.18em]">
+              Express Couriers
+            </span>
+          </div>
+        </Link>
+
+        {/* Desktop Links */}
+        <div className="hidden items-center gap-1 rounded-md border border-white/10 bg-white/5 p-1 md:flex">
+          {links.map(([to, label]) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              className={({ isActive }) =>
+                `px-4 py-1.5 rounded-md text-sm font-medium transition-all duration-200 ${
+                  isActive
+                    ? 'bg-white text-black shadow-sm'
+                    : 'text-neutral-400 hover:text-white hover:bg-white/10'
+                }`
+              }
+            >
               {label}
             </NavLink>
           ))}
         </div>
 
-        {/* Desktop Dynamic Action Actions */}
-        <div className="flex items-center gap-2">
+        {/* User Actions */}
+        <div className="flex items-center gap-2.5">
           {user ? (
-            <>
-              {/* FIXED: Changed user.first_name to user.firstName to match AuthPage payload */}
-              <NavLink to="/dashboard" className="hidden text-sm font-semibold text-primary-700 sm:inline-flex">
-                {user.firstName || user.first_name}
-              </NavLink>
-              <button 
-                type="button" 
-                onClick={logout} 
-                className="hidden rounded-lg border border-primary-200 px-3 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 sm:inline-flex"
+            <div className="hidden sm:flex items-center gap-2.5">
+              <span className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5 rounded-md bg-white/5 text-neutral-200 border border-white/10">
+                <span className="live-dot w-1.5 h-1.5 rounded-full bg-red-500" />
+                {user.firstName || user.first_name} · {user.role}
+              </span>
+              <button
+                type="button"
+                onClick={logout}
+                className="px-3 py-1.5 text-xs font-medium text-neutral-400 hover:text-white transition"
               >
                 Sign out
               </button>
-            </>
+            </div>
           ) : (
-            <NavLink 
-              to="/login" 
-              className="hidden rounded-lg border border-primary-200 px-4 py-2 text-sm font-semibold text-primary-700 hover:bg-primary-50 sm:inline-flex"
+            <Link
+              to="/login"
+              className="hidden sm:inline-flex px-3.5 py-1.5 text-sm font-medium text-neutral-300 hover:text-white transition"
             >
               Sign in
-            </NavLink>
+            </Link>
           )}
 
-          <NavLink 
-            to={user ? "/dashboard" : "/login?mode=register"} 
-            className="hidden rounded-lg bg-primary-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-800 sm:inline-flex"
+          <Link
+            to={user ? "/dashboard" : "/register"}
+            className="btn-sleek hidden sm:inline-flex px-4 py-2 rounded-md bg-white hover:bg-red-600 hover:text-white text-black font-semibold text-sm shadow-sm transition"
           >
-            {user ? 'Dashboard' : 'Get Started'}
-          </NavLink>
+            {user ? "Dashboard" : "Get Started"}
+          </Link>
 
-          {/* Mobile Hamburger Toggle Button */}
-          <button 
-            type="button" 
-            onClick={() => setOpen(!open)} 
-            aria-expanded={open} 
-            aria-label="Toggle navigation" 
-            className="rounded-lg p-2 text-primary-800 hover:bg-primary-50 md:hidden"
+          {/* Mobile menu button */}
+          <button
+            type="button"
+            onClick={() => setOpen(!open)}
+            aria-expanded={open}
+            aria-label="Toggle navigation menu"
+            className="p-2 rounded-lg border border-white/15 text-neutral-300 hover:text-white hover:bg-white/10 md:hidden transition"
           >
-            <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"} />
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d={open ? 'M6 18L18 6M6 6l12 12' : 'M4 6h16M4 12h16M4 18h16'} />
             </svg>
           </button>
         </div>
       </nav>
 
-      {/* Mobile Drawer Panel */}
+      {/* Mobile Drawer */}
       {open && (
-        <div className="border-t border-primary-100 bg-white px-4 py-4 md:hidden">
-          <div className="mx-auto flex max-w-7xl flex-col gap-1">
-            {getNavLinks(user).map(([to, label]) => (
-              <NavLink 
-                key={to} 
-                to={to} 
-                end={to === '/'} 
-                onClick={() => setOpen(false)} 
-                className={({ isActive }) => 
-                  `rounded-lg px-3 py-2.5 text-sm font-medium ${isActive ? 'bg-primary-50 text-primary-700' : 'text-text-secondary'}`
-                }
-              >
-                {label}
-              </NavLink>
-            ))}
+        <div className="drawer-in border-t border-white/10 bg-[#0a0a0b] px-4 py-3 md:hidden space-y-1">
+          {links.map(([to, label]) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={to === '/'}
+              onClick={() => setOpen(false)}
+              className={({ isActive }) =>
+                `block px-3.5 py-2.5 rounded-xl text-sm font-medium transition ${
+                  isActive
+                    ? 'bg-white text-black'
+                    : 'text-neutral-300 hover:bg-white/10 hover:text-white'
+                }`
+              }
+            >
+              {label}
+            </NavLink>
+          ))}
 
+          <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5">
             {user ? (
-              <>
-                <button 
-                  type="button" 
-                  onClick={logout} 
-                  className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-red-700 hover:bg-red-50"
-                >
-                  Sign out
-                </button>
-              </>
+              <button
+                type="button"
+                onClick={logout}
+                className="w-full text-left px-3.5 py-2.5 rounded-xl text-sm font-medium text-red-400 hover:bg-white/5"
+              >
+                Sign out ({user.firstName || user.first_name})
+              </button>
             ) : (
               <>
-                <NavLink 
-                  to="/login" 
-                  onClick={() => setOpen(false)} 
-                  className="rounded-lg px-3 py-2.5 text-sm font-medium text-text-secondary hover:bg-gray-50"
+                <Link
+                  to="/login"
+                  onClick={() => setOpen(false)}
+                  className="px-3.5 py-2.5 rounded-xl text-sm font-medium text-neutral-300 hover:bg-white/10 hover:text-white"
                 >
                   Sign in
-                </NavLink>
-                <NavLink 
-                  to="/login?mode=register" 
-                  onClick={() => setOpen(false)} 
-                  className="mt-2 rounded-lg bg-primary-700 px-3 py-2.5 text-center text-sm font-semibold text-white"
+                </Link>
+                <Link
+                  to="/register"
+                  onClick={() => setOpen(false)}
+                  className="px-4 py-2.5 rounded-xl bg-white text-center text-black font-semibold text-sm"
                 >
                   Create Account
-                </NavLink>
+                </Link>
               </>
             )}
           </div>
@@ -153,21 +176,16 @@ const Navbar = () => {
   );
 };
 
-// Helper function to get navigation links based on user role
 const getNavLinks = (user) => {
-  if (!user) return [['/', 'Home']]; // Show Home if not authenticated
-
-  const baseLinks = [['/dashboard', 'Dashboard']];
-
-  if (user.role === 'customer') {
-    return [...baseLinks, ['/orders/new', 'New Order']];
-  } else if (user.role === 'rider') {
-    return [...baseLinks, ['/riders/available', 'Available Orders']];
-  } else if (user.role === 'admin') {
-    return [...baseLinks, ['/admin/users', 'Users']];
-  }
-
-  return baseLinks;
+  if (!user) return [['/', 'Home']];
+  const base = [
+    ['/', 'Home'],
+    ['/dashboard', 'Dashboard']
+  ];
+  if (user.role === 'customer') return [...base, ['/orders/new', 'New Delivery']];
+  if (user.role === 'rider') return [...base, ['/riders/available', 'Available Jobs']];
+  if (user.role === 'admin') return [...base, ['/admin/users', 'Manage Users']];
+  return base;
 };
 
 export default Navbar;

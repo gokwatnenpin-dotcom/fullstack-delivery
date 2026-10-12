@@ -57,6 +57,7 @@ export const updatePaymentStatus = (orderId, paymentData) => apiRequest(`/api/pa
 // Admin endpoints
 export const getAdminStats = () => apiRequest('/api/admin/stats');
 export const getAdminUsers = () => apiRequest('/api/admin/users');
+export const updateAdminUserStatus = (id, status) => apiRequest(`/api/admin/users/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
 export const getAdminOrders = () => apiRequest('/api/admin/orders');
 export const getAdminRiders = () => apiRequest('/api/admin/riders');
 

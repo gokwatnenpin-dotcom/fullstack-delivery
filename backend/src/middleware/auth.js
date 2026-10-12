@@ -1,5 +1,5 @@
 import jwt from 'jsonwebtoken';
-import { User } from '../models/index.js';
+import { User } from '../../models/index.js';
 
 export function authenticate(req, res, next) {
   const token = req.headers.authorization?.startsWith('Bearer ')
@@ -17,6 +17,7 @@ export function authenticate(req, res, next) {
       if (user.status !== 'active') {
         return res.status(401).json({ error: 'Account is not active' });
       }
+      user.sub = user.id;
       req.user = user;
       return next();
     }).catch(err => {

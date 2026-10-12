@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Customer, User } from '../models/index.js';
+import { Customer, User } from '../../models/index.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
@@ -13,7 +13,7 @@ router.get('/me', authenticate, async (req, res, next) => {
     }
 
     const customer = await Customer.findOne({
-      where: { user_id: req.user.sub },
+      where: { user_id: req.user.id },
       include: [{
         model: User,
         attributes: ['id', 'email', 'first_name', 'last_name', 'role', 'status']
@@ -42,7 +42,7 @@ router.put('/me', authenticate, async (req, res, next) => {
 
     const [updated] = await Customer.update(
       { phone, address },
-      { where: { user_id: req.user.sub } }
+      { where: { user_id: req.user.id } }
     );
 
     if (!updated) {

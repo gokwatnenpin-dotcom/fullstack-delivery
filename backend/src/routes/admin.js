@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { User, Order, Rider } from '../models/index.js';
+import { User, Order, Rider } from '../../models/index.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
@@ -167,17 +167,17 @@ router.get('/stats', authenticate, async (req, res, next) => {
       return res.status(403).json({ error: 'Insufficient permissions' });
     }
 
-    const [usersCount, ordersCount, ridersCount] = await Promise.all[
+    const [usersCount, ordersCount, ridersCount] = await Promise.all([
       User.count(),
       Order.count(),
       Rider.count()
-    ];
+    ]);
 
-    const [activeRidersCount, pendingOrdersCount, deliveredOrdersCount] = await Promise.all[
+    const [activeRidersCount, pendingOrdersCount, deliveredOrdersCount] = await Promise.all([
       Rider.count({ where: { availability_status: 'available' } }),
       Order.count({ where: { status: 'pending' } }),
       Order.count({ where: { status: 'delivered' } })
-    ];
+    ]);
 
     res.json({
       stats: {

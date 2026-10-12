@@ -1,249 +1,225 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link, Navigate } from 'react-router-dom'; // FIXED: Added Navigate import
+import { useNavigate, Navigate } from 'react-router-dom';
 import { 
   getRiderProfile, 
   updateRiderAvailability, 
-  getAvailableRiders, 
   getOrders, 
-  updateOrderStatus // FIXED: Added missing API hook import
+  updateOrderStatus
 } from '../lib/api';
+import { TruckIcon, PinIcon, PackageIcon } from '../components/Icons';
 
 const RiderAvailabilityPage = () => {
   const [rider, setRider] = useState(null);
-  const [availableRiders, setAvailableRiders] = useState([]);
   const [availableOrders, setAvailableOrders] = useState([]);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const [actionBusy, setActionBusy] = useState(false);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem('delivery-token');
+  const user = JSON.parse(localStorage.getItem('delivery-user') || '{}');
+
+  const loadRiderData = async () => {
+    try {
+      setLoading(true);
+      const riderData = await getRiderProfile().catch(() => null);
+      setRider(riderData?.rider || riderData);
+
+      const ordersData = await getOrders({});
+      const rawOrders = ordersData.orders || ordersData || [];
+      const unassignedOrders = rawOrders.filter(
+        order => (order.status === 'confirmed' || order.status === 'pending') && !order.rider_id
+      );
+      setAvailableOrders(unassignedOrders);
+    } catch (err) {
+      setError(err.message || 'Failed to sync rider dashboard.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadRiderData = async () => {
-      try {
-        setLoading(true);
-        const riderData = await getRiderProfile();
-        setRider(riderData);
-
-        const ridersData = await getAvailableRiders();
-        setAvailableRiders(ridersData);
-
-        const ordersData = await getOrders({});
-        const availableOrdersData = ordersData.filter(order =>
-          order.status === 'confirmed' && !order.rider_id
-        );
-        setAvailableOrders(availableOrdersData);
-      } catch (err) {
-        setError(err.message || 'Failed to load rider telemetry data.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const token = localStorage.getItem('delivery-token');
-    const user = JSON.parse(localStorage.getItem('delivery-user') || '{}');
     if (token && user?.role === 'rider') {
       loadRiderData();
     }
   }, []);
 
-  const token = localStorage.getItem('delivery-token');
   if (!token) return <Navigate to="/login" replace />;
-
-  const user = JSON.parse(localStorage.getItem('delivery-user') || '{}');
   if (!user || user.role !== 'rider') {
     return <Navigate to="/dashboard" replace />;
   }
 
-  // FIXED: Standard loading skeleton guard to prevent UI null pointer crashes
-  if (loading) {
-    return (
-      <main className="bg-background-dark py-16">
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full border-4 border-primary-600 border-t-transparent w-12 h-12"></div>
-        </div>
-      </main>
-    );
-  }
-
   const handleAvailabilityChange = async (status) => {
     try {
+      setActionBusy(true);
       await updateRiderAvailability(status);
       const updatedRider = await getRiderProfile();
-      setRider(updatedRider);
+      setRider(updatedRider.rider || updatedRider);
     } catch (err) {
-      setError('Failed to update availability: ' + err.message);
+      setError('Status update failed: ' + err.message);
+    } finally {
+      setActionBusy(false);
     }
   };
 
   const acceptOrder = async (orderId) => {
     try {
+      setActionBusy(true);
       await updateOrderStatus(orderId, {
         status: 'assigned',
         rider_id: user.id
       });
-      
-      const ordersData = await getOrders({});
-      const availableOrdersData = ordersData.filter(order =>
-        order.status === 'confirmed' && !order.rider_id
-      );
-      setAvailableOrders(availableOrdersData);
-
-      alert('Order accepted successfully! Redirecting to your dashboard workspace.');
-      navigate('/dashboard'); // FIXED: Swapped window.location.href for SPA navigate transition
+      navigate(`/orders/${orderId}`);
     } catch (err) {
-      setError('Failed to accept order: ' + err.message);
-    }
-  };
-
-  const getAvailabilityBadge = (status, isSmall = false) => {
-    let bgColor = 'bg-primary-50';
-    let textColor = 'text-primary-600';
-
-    switch (status) {
-      case 'available':
-        bgColor = 'bg-green-100';
-        textColor = 'text-green-800';
-        break;
-      case 'busy':
-        bgColor = 'bg-yellow-100';
-        textColor = 'text-yellow-800';
-        break;
-      case 'offline':
-        bgColor = 'bg-gray-100';
-        textColor = 'text-gray-800';
-        break;
-    }
-
-    const sizeClass = isSmall ? 'text-xs' : 'text-sm';
-    const paddingClass = isSmall ? 'px-2 py-1' : 'px-3 py-2';
-
-    return (
-      <span className={`${paddingClass} rounded-md font-semibold ${bgColor} ${textColor} ${sizeClass}`}>
-        {status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown'}
-      </span>
-    );
-  };
-
-  const getAvailabilityLabel = (status) => {
-    switch (status) {
-      case 'available': return 'Available for deliveries';
-      case 'busy': return 'Currently busy';
-      case 'offline': return 'Offline / Not available';
-      default: return 'No Status Determined';
+      setError('Assignment failed: ' + err.message);
+      setActionBusy(false);
     }
   };
 
   return (
-    <main className="bg-background-dark py-16">
-      <div className="mx-auto max-w-5xl px-4 sm:px-6">
-        <div className="bg-white rounded-2xl p-6 shadow-sm sm:p-8">
-          
-          <div className="mb-6">
-            <p className="eyebrow">Delivery<span className="text-primary-600">+</span></p>
-            <h1 className="text-2xl font-bold text-primary-900 mt-1">Rider Availability</h1>
-          </div>
+    <main className="min-h-[calc(100vh-64px)] bg-[#f8fafc] py-10 px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-5xl">
 
-          {error && (
-            <p className="rounded-lg bg-red-50 p-4 text-sm text-red-700 mb-6" role="alert">
-              {error}
-            </p>
-          )}
-
-          <div className="space-y-6">
-            <div className="border-b border-gray-100 pb-6">
-              <h2 className="text-xl font-semibold text-primary-900 mb-4">Your Availability Status</h2>
-              
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center justify-center">
-                  {getAvailabilityBadge(rider?.availability_status)}
-                </div>
-                <div>
-                  <p className="text-lg font-medium text-gray-900">
-                    {getAvailabilityLabel(rider?.availability_status)}
-                  </p>
-                  <p className="text-sm text-text-secondary mt-0.5">
-                    Last updated: {rider?.updatedAt ? new Date(rider.updatedAt).toLocaleTimeString() : 'Never'}
-                  </p>
-                </div>
-              </div>
-
-              {/* FIXED: Repaired broken string syntax interpolation brackets */}
-              <div className="mt-6 flex flex-wrap gap-3">
-                <button 
-                  type="button"
-                  onClick={() => handleAvailabilityChange('available')} 
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    rider?.availability_status === 'available' 
-                      ? 'bg-primary-600 text-white shadow-sm' 
-                      : 'bg-primary-50 text-primary-700 hover:bg-primary-100'
-                  }`}
-                >
-                  Available
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => handleAvailabilityChange('busy')} 
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    rider?.availability_status === 'busy' 
-                      ? 'bg-amber-600 text-white shadow-sm' 
-                      : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
-                  }`}
-                >
-                  Busy
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => handleAvailabilityChange('offline')} 
-                  className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${
-                    rider?.availability_status === 'offline' 
-                      ? 'bg-gray-600 text-white shadow-sm' 
-                      : 'bg-gray-50 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  Offline
-                </button>
-              </div>
-
-              {rider?.availability_status === 'available' && (
-                <div className="mt-4 rounded-lg bg-green-50/50 p-3 border border-green-100/50">
-                  <p className="text-sm font-medium text-green-800">
-                    You're currently live! Open orders will register dynamically below.
-                  </p>
-                </div>
-              )}
+        {/* Header */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 sm:p-8 shadow-sm mb-8">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="text-xs font-semibold uppercase tracking-wider text-red-600">
+                Courier Workspace
+              </span>
+              <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-slate-900 tracking-tight">
+                Availability & Jobs
+              </h1>
+              <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                Set your status to accept nearby delivery assignments.
+              </p>
             </div>
 
-            {/* ORDER POOL SECTION (Rendered out for implementation visibility) */}
-            <div className="pt-2">
-              <h2 className="text-xl font-semibold text-primary-900 mb-4">Open Confirmed Orders Pool</h2>
-              {availableOrders.length > 0 ? (
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {availableOrders.map((order) => (
-                    <div key={order.id} className="border border-gray-100 rounded-xl p-4 shadow-sm bg-white flex flex-col justify-between">
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="font-bold text-gray-900 text-sm">Order #{order.id}</span>
-                          <span className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleDateString()}</span>
-                        </div>
-                        <p className="text-xs text-gray-600 mt-1"><b className="text-gray-700">From:</b> {order.pickup_location?.address}</p>
-                        <p className="text-xs text-gray-600"><b className="text-gray-700">To:</b> {order.delivery_location?.address}</p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => acceptOrder(order.id)}
-                        className="mt-4 w-full bg-primary-700 hover:bg-primary-800 text-white rounded-lg text-xs font-bold py-2 transition"
-                      >
-                        Accept Job assignment
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-text-secondary italic">No unassigned confirmed orders available right now.</p>
-              )}
+            {/* Status indicator */}
+            <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3.5 py-1.5">
+              <span className={`w-2 h-2 rounded-full ${rider?.availability_status === 'available' ? 'bg-red-600' : 'bg-slate-400'}`} />
+              <span className="text-xs font-medium text-slate-700 capitalize">
+                Status: {rider?.availability_status || 'offline'}
+              </span>
             </div>
-
           </div>
         </div>
+
+        {error && (
+          <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-4 text-xs text-red-600">
+            {error}
+          </div>
+        )}
+
+        {/* Status Switcher */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm mb-8">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4">
+            Update Availability
+          </h2>
+          <div className="grid grid-cols-3 gap-3">
+            {[
+              { key: 'available', label: 'Available', desc: 'Ready for delivery jobs' },
+              { key: 'busy', label: 'Busy', desc: 'Currently handling a job' },
+              { key: 'offline', label: 'Offline', desc: 'Not accepting deliveries' }
+            ].map(btn => (
+              <button
+                key={btn.key}
+                type="button"
+                disabled={actionBusy}
+                onClick={() => handleAvailabilityChange(btn.key)}
+                className={`rounded-lg border p-4 text-left transition ${
+                  rider?.availability_status === btn.key
+                    ? 'border-red-600 bg-red-50 text-red-700 font-semibold shadow-sm'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                }`}
+              >
+                <div className="text-sm font-semibold">{btn.label}</div>
+                <div className="text-xs opacity-75 mt-0.5">{btn.desc}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Live Broadcast Jobs Pool */}
+        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div className="flex items-center justify-between pb-5 border-b border-slate-200 mb-6">
+            <div>
+              <h2 className="text-lg font-bold text-slate-900">
+                Available Delivery Jobs
+              </h2>
+              <p className="text-xs text-slate-500 mt-0.5">
+                {availableOrders.length} unassigned orders waiting for pickup
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={loadRiderData}
+              className="px-3.5 py-1.5 rounded-lg border border-slate-200 bg-slate-50 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+            >
+              Refresh
+            </button>
+          </div>
+
+          {loading ? (
+            <div className="py-16 text-center text-slate-400 text-sm">
+              <span className="inline-block spin text-xl text-red-600 mb-2">⚙</span>
+              <p>Scanning for nearby orders...</p>
+            </div>
+          ) : availableOrders.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              {availableOrders.map((order) => (
+                <div
+                  key={order.id}
+                  className="rounded-xl border border-slate-200 bg-white p-5 flex flex-col justify-between hover:border-slate-300 transition shadow-sm"
+                >
+                  <div>
+                    <div className="flex justify-between items-start pb-3 mb-3 border-b border-slate-100">
+                      <span className="text-sm font-bold text-slate-900">Order #{order.id}</span>
+                      <span className="text-sm font-bold text-red-600">${parseFloat(order.amount || 0).toFixed(2)}</span>
+                    </div>
+
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-start gap-1.5">
+                        <PinIcon className="w-3.5 h-3.5 text-red-600 mt-0.5 shrink-0" />
+                        <div>
+                          <span className="text-slate-500 font-medium">Pickup: </span>
+                          <span className="text-slate-800">{order.pickup_location?.address}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-1.5">
+                        <PinIcon className="w-3.5 h-3.5 text-slate-400 mt-0.5 shrink-0" />
+                        <div>
+                          <span className="text-slate-500 font-medium">Dropoff: </span>
+                          <span className="text-slate-800">{order.delivery_location?.address}</span>
+                        </div>
+                      </div>
+                      <div className="pt-2 text-slate-500 flex items-center gap-1.5 border-t border-slate-100">
+                        <PackageIcon className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                        <span>Cargo: </span>
+                        <span className="text-slate-800 font-medium truncate">{order.items}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    disabled={actionBusy}
+                    onClick={() => acceptOrder(order.id)}
+                    className="mt-5 w-full py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-xs font-semibold transition disabled:opacity-50 shadow-sm"
+                  >
+                    Accept Job
+                  </button>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="py-14 text-center rounded-lg border border-slate-200 text-slate-500 text-xs">
+              No unassigned delivery orders available right now.
+              <p className="mt-1 text-slate-400 text-[11px]">Check back shortly or refresh the list.</p>
+            </div>
+          )}
+        </div>
+
       </div>
     </main>
   );

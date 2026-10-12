@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Order, User } from '../models/index.js';
+import { Order, User, Rider } from '../../models/index.js';
 import { authenticate } from '../middleware/auth.js';
 
 const router = Router();
@@ -38,7 +38,7 @@ router.post('/', authenticate, async (req, res, next) => {
 });
 
 // Get customer's orders
-router.get('/', authenticate, async (req, res, next) {
+router.get('/', authenticate, async (req, res, next) => {
   try {
     let whereClause = {};
 
@@ -180,7 +180,7 @@ router.patch('/:id/status', authenticate, async (req, res, next) => {
         return res.status(400).json({ error: 'Invalid rider ID' });
       }
 
-      const riderProfile = await require('../models/index.js').Rider.findOne({
+      const riderProfile = await Rider.findOne({
         where: { user_id: req.body.rider_id, availability_status: 'available' }
       });
 
