@@ -6,10 +6,10 @@ import { fileURLToPath } from 'node:url';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const node = process.execPath;
 const vite = path.join(root, 'node_modules', 'vite', 'bin', 'vite.js');
+const nodemon = path.join(root, 'node_modules', 'nodemon', 'bin', 'nodemon.js');
 const backend = path.join(root, 'backend', 'src', 'server.js');
-console.log('Nodemon path:', path.join(root, 'node_modules', '.bin', 'nodemon.cmd'));
 const children = [
-  spawn('cmd', ['/c', path.join(root, 'node_modules', '.bin', 'nodemon.cmd'), '--watch', 'backend', backend], { cwd: root, stdio: 'inherit', env: process.env }),
+  spawn(node, [nodemon, '--watch', 'backend', backend], { cwd: root, stdio: 'inherit', env: process.env }),
   spawn(node, [vite, '--host'], { cwd: root, stdio: 'inherit', env: process.env }),
 ];
 
